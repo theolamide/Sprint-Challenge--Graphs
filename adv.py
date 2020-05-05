@@ -12,10 +12,10 @@ world = World()
 
 # You may uncomment the smaller graphs for development and testing purposes.
 # map_file = "maps/test_line.txt"
-map_file = "maps/test_cross.txt"
+# map_file = "maps/test_cross.txt"
 # map_file = "maps/test_loop.txt"
 # map_file = "maps/test_loop_fork.txt"
-# map_file = "maps/main_maze.txt"
+map_file = "maps/main_maze.txt"
 
 # Loads the map into a dictionary
 room_graph = literal_eval(open(map_file, "r").read())
@@ -32,40 +32,46 @@ player = Player(world.starting_room)
 
 # Starting Room
 # get list of open exits of current room
-
-
-def graph_traversal(starting_room):
-    stack = Stack()
-    stack.push([starting_room])
-    traversedRooms = {}
-
-    while stack.size() > 0:
-        path = stack.pop()
-        currentRoom = path[-1]
-        if currentRoom not in traversedRooms:
-            traversedRooms[currentRoom.id] = {}
-            # get exits of current room player is in
-            availableExits = player.current_room.get_exits()
-            # print("Available Exits:", availableExits)
-            for exits in availableExits:
-                room = player.current_room.get_room_in_direction(exits)
-                if room is not None:
-                    traversedRooms[currentRoom.id] = {exits: room.id}
-                    # print("traversal_path 63:", traversal_path)
-                    # print("Traversed Rooms 64:", traversedRooms)
-                    newPath = list(path)
-                    newPath.append(room)
-                    stack.push(newPath)
-                else:
-                    traversedRooms[currentRoom.id] = {exit: "?"}
-            player.travel(random.choice(availableExits))
-
-    return traversedRooms
-
-
-graph_traversal(world.starting_room)
-
 traversal_path = []
+
+reverse_direction = {'n': 's', 'e': 'w', 's': 'n', 'w': 'e'}
+
+
+def graph_traversal(starting_room, visited=set()):
+
+    path_taken = []
+
+    # get all possible exits in current_room
+    for direction in player.current_room.get_exits():
+        # player travel to room in direction of exit
+        player.travel(direction)
+
+        # check if new room has been visited
+        if player.current_room.id not in visited:
+            # room has not been visited
+            # mark as visited
+            visited.add(player.current_room.id)
+            # add new direction to path_taken
+            path_taken.append(direction)
+            # print("path_taken 56", path_taken)
+            # recurse with new current_room and add to path_taken
+            path_taken = path_taken + \
+                graph_traversal(player.current_room.id, visited)
+            # print("path_taken 60", path_taken)
+            # backtrack and go to different room
+            player.travel(reverse_direction[direction])
+            # add backtrack to path_taken to keep track of steps
+            path_taken.append(reverse_direction[direction])
+
+        else:
+            # Room already visited so backtrack and go to different room
+            player.travel(reverse_direction[direction])
+
+    return path_taken
+
+
+traversal_path = graph_traversal(player.current_room.id)
+
 
 # TRAVERSAL TEST
 visited_rooms = set()
@@ -96,3 +102,28 @@ else:
 #         break
 #     else:
 #         print("I did not understand that command.")
+
+    # stack = Stack()
+    # stack.push([starting_room])
+    # traversedRooms = {}
+
+    # while stack.size() > 0:
+    #     path = stack.pop()
+    #     currentRoom = path[-1]
+    #     if currentRoom not in traversedRooms:
+    #         traversedRooms[currentRoom.id] = {}
+    #         # get exits of current room player is in
+    #         availableExits = player.current_room.get_exits()
+    #         # print("Available Exits:", availableExits)
+    #         for exits in availableExits:
+    #             room = player.current_room.get_room_in_direction(exits)
+    #             if room is not None:
+    #                 traversedRooms[currentRoom.id] = {exits: room.id}
+    #                 # print("traversal_path 63:", traversal_path)
+    #                 # print("Traversed Rooms 64:", traversedRooms)
+    #                 newPath = list(path)
+    #                 newPath.append(room)
+    #                 stack.push(newPath)
+    #             else:
+    #                 traversedRooms[currentRoom.id] = {exit: "?"}
+    #         player.travel(random.choice(availableExits))
